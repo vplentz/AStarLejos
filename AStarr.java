@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Stack;
 
 import lejos.nxt.Motor;
 import lejos.robotics.navigation.DifferentialPilot;
@@ -8,6 +9,7 @@ public class AStarr {
 	DifferentialPilot dPilot = new DifferentialPilot(1.5748f, 4.409449f, Motor.A, Motor.C);
 	MySet closed = new MySet();
 	MNode whereImI;
+	ArrayList<MNode> notTraveledList = new ArrayList<MNode>();
 	ArrayList<MNode> cells = new ArrayList<MNode>();
 	int gridHeight = 6;
 	int gridWidth = 6;
@@ -20,7 +22,6 @@ public class AStarr {
 		dPilot.setRotateSpeed(100);
 		dPilot.setTravelSpeed(10);
 		dPilot.setAcceleration(20);
-
 	}
 
 	public void initGrid() {
@@ -78,15 +79,34 @@ public class AStarr {
 				isFirst = false;
 				this.whereImI = cell;
 				System.out.println("first X " + whereImI.getX() + " Y "+ whereImI.getY());
-	
-			} else {
-
+			}else{
 				System.out.println("current X " + whereImI.getX() + " Y "+ whereImI.getY());
 				System.out.println("next X " + cell.getX() + " Y "+ cell.getY());
-	
-		//		moveIt(whereImI, cell);
+				while(!areAdjacent(whereImI, cell)){
+					notTraveledList.add(cell);
+					if(!opened.getNodes().isEmpty())
+						cell = opened.heapPop();
+					else{
+						ArrayList<MNode> adjacents = this.getAdjacentCells(whereImI);
+						boolean found = false;
+						for(MNode adjacent : adjacents){
+							if(notTraveledList.contains(adjacent)){
+								cell = adjacent;
+								found = true;
+							}
+						}
+						if(found == false){
+							moveIt(whereImI, whereImI.getParent());
+							whereImI = whereImI.getParent();	
+						}
+					}
+				}
+				System.out.println("after move X " + whereImI.getX() + " Y "+ whereImI.getY());
+				moveIt(whereImI, cell);
 				whereImI = cell;
-				
+				for(MNode node : notTraveledList)
+					opened.heapPush(node);
+				notTraveledList.clear();
 			}
 			this.closed.add(cell);
 			if (cell.equals(this.end)) {
@@ -100,7 +120,7 @@ public class AStarr {
 						if (adjacentCell.getG() > cell.getG() + 10)
 							this.updateCell(adjacentCell, cell);
 					} else {
-						System.out.println("insertin in heap x "+ adjacentCell.getX() + " y "+ adjacentCell.getY());
+//						System.out.println("insertin in heap x "+ adjacentCell.getX() + " y "+ adjacentCell.getY());
 						this.updateCell(adjacentCell, cell);
 						opened.heapPush(adjacentCell);
 					}
@@ -108,7 +128,11 @@ public class AStarr {
 			}
 		}
 	}
-
+	public boolean areAdjacent(MNode myself, MNode wanted){
+		if(this.getAdjacentCells(myself).contains(wanted))
+			return true;
+		return false;
+	}
 	public void moveIt(MNode whereImI, MNode whereToGo) {
 		if (whereImI.getY() != whereToGo.getY()) {// left or right
 			if (whereToGo.getY() - whereImI.getY() == 1) {// right
@@ -123,7 +147,7 @@ public class AStarr {
 				}
 
 				System.out.println("right");
-				System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
+			//	System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
 				
 				myDirection = 3;
 			} else {// left
@@ -139,7 +163,7 @@ public class AStarr {
 
 				System.out.println("left");
 
-				System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
+				//System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
 			}
 		} else {// up or down
 			if (whereToGo.getX() - whereImI.getX() == 1) {// down
@@ -154,7 +178,7 @@ public class AStarr {
 
 				System.out.println("down");
 
-				System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
+				//System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
 			} else {// up
 				if (myDirection == 0) {// was down
 					turnRobotRight(dPilot);
@@ -167,7 +191,7 @@ public class AStarr {
 
 				System.out.println("up");
 
-				System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
+				//System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
 	
 			}
 		}
