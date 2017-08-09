@@ -24,13 +24,13 @@ public class AStarr {
 	MNode end;
 
 	public AStarr(MyPair start, MyPair end, int myDirection) {
-		dPilot.setRotateSpeed(100);
-		dPilot.setTravelSpeed(10);
-		dPilot.setAcceleration(20);
+		dPilot.setRotateSpeed(25);
+		dPilot.setTravelSpeed(7.5);
+		dPilot.setAcceleration(15);
 		this.myDirection = myDirection;
 		initGrid(start, end);
-		System.out.println("START X"+ this.start.getX() + " Y " +this.start.getY());
-		System.out.println("END X"+ this.end.getX() + " Y " +this.end.getY());
+		//System.out.println("START X"+ this.start.getX() + " Y " +this.start.getY());
+	//	System.out.println("END X"+ this.end.getX() + " Y " +this.end.getY());
 		this.process();
 	}
 
@@ -66,14 +66,18 @@ public class AStarr {
 				this.whereImI = cell;
 				getWalls(whereImI);
 				System.out.println("first X " + whereImI.getX() + " Y "+ whereImI.getY());
+				System.out.println("direction "+ this.myDirection);
 			}else{
 				System.out.println("current X " + whereImI.getX() + " Y "+ whereImI.getY());
 				System.out.println("next X " + cell.getX() + " Y "+ cell.getY());
 				if(!areAdjacent(whereImI,cell)){
 					System.out.println("RECURSION");
+					System.out.println("direction "+ this.myDirection);
 					new AStarr(new MyPair(whereImI.getX(), whereImI.getY()), new MyPair(cell.getX(), cell.getY()), myDirection);
 					whereImI = cell;
+					getWalls(whereImI);
 				}else{
+					System.out.println("direction "+ this.myDirection);
 					moveIt(whereImI, cell);
 					dPilot.travel(11.811f);
 					whereImI = cell;
@@ -103,28 +107,39 @@ public class AStarr {
 	public void getWalls(MNode whereImI){
 		int currentDirection = turn(myDirection, 1);//always lookup
 		//check up
+		Delay.msDelay(1000);
 		if(checkIt()){
+			System.out.println("tentado acima do x " + getCell(whereImI.getX(), whereImI.getY()).getX() + " y " + getCell(whereImI.getX(), whereImI.getY()).getX());
 			if(whereImI.getX()-1 >= 0)
 				getCell(whereImI.getX()-1, whereImI.getY()).setReachable(false);
 		}
-		//check left
-		if(this.turnHeadLeft(ultrasonicMotor)){
-			if(whereImI.getY() -1 >= 0)
-				getCell(whereImI.getX(), whereImI.getY()-1).setReachable(false);
-		}
 		//check right
 		if(this.turnHeadRight(ultrasonicMotor)){
-			if(whereImI.getY()+1 < this.gridWidth)
+			System.out.println("tentado direita do x " + getCell(whereImI.getX(), whereImI.getY()).getX() + " y " + getCell(whereImI.getX(), whereImI.getY()).getX());
+
+			if(whereImI.getY() -1 >= 0){
+				getCell(whereImI.getX(), whereImI.getY()-1).setReachable(false);
+				System.out.println(getCell(whereImI.getX(), whereImI.getY()-1).isReachable());
+			}
+		}
+		//check left
+		if(this.turnHeadLeft(ultrasonicMotor)){
+			System.out.println("tentado esquerda do x " + getCell(whereImI.getX(), whereImI.getY()).getX() + " y " + getCell(whereImI.getX(), whereImI.getY()).getX());
+			if(whereImI.getY()+1 < this.gridWidth){
 				getCell(whereImI.getX(), whereImI.getY()+1).setReachable(false);
+				System.out.println(getCell(whereImI.getX(), whereImI.getY()+1).isReachable());
+			}
 		}
 		//check down
-		currentDirection = turn(currentDirection, 0);//always lookdown
-		if(this.checkIt()){
-			if(whereImI.getX()+1 < this.gridHeight)
+		if(this.turnHeadBack(ultrasonicMotor)){
+			System.out.println("tentado abaixo do x " + getCell(whereImI.getX(), whereImI.getY()).getX() + " y " + getCell(whereImI.getX(), whereImI.getY()).getX());
+			if(whereImI.getX()+1 < this.gridHeight){
 				getCell(whereImI.getX()+1, whereImI.getY()).setReachable(false);
+				System.out.println(getCell(whereImI.getX()+1, whereImI.getY()).isReachable());
+			}
 		}
 		//goes to initial direction
-		turn(currentDirection, myDirection);
+		//turn(currentDirection, myDirection);
 		
 	}
 	public boolean areAdjacent(MNode myself, MNode wanted){
@@ -172,6 +187,7 @@ public class AStarr {
 			}
 			myDirection = 3;
 		}
+		this.myDirection = myDirection;
 		return myDirection;
 	}
 	public void moveIt(MNode whereImI, MNode whereToGo) {
@@ -187,7 +203,7 @@ public class AStarr {
 					turnRobotRight(dPilot);
 				}
 
-				System.out.println("right");
+		//		System.out.println("right");
 			//	System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
 				
 				myDirection = 3;
@@ -202,7 +218,7 @@ public class AStarr {
 				}
 				myDirection = 2;
 
-				System.out.println("left");
+			//	System.out.println("left");
 
 				//System.out.println("where am i x " + whereImI.getX() + " where to go x " + whereToGo.getX());
 			}
@@ -217,7 +233,7 @@ public class AStarr {
 					turnRobotLeft(dPilot);
 				myDirection = 0;
 
-				System.out.println("down");
+				//System.out.println("down");
 
 				//System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
 			} else {// up
@@ -230,7 +246,7 @@ public class AStarr {
 					turnRobotRight(dPilot);
 				myDirection = 1;
 
-				System.out.println("up");
+				//System.out.println("up");
 
 				//System.out.println("where am i Y " + whereImI.getY() + " where to go Y " + whereToGo.getY());
 	
@@ -238,26 +254,36 @@ public class AStarr {
 		}
 	}
 	public boolean checkIt(){
+		Delay.msDelay(2000);
 		int distance = ultrasonicSensor.getDistance();
-		Delay.msDelay(100);
-		if(distance <= 15)
-			return true;
+		Delay.msDelay(1000);
+		System.out.println(distance);
+		if(distance <= 28)
+				return true;
 		return false;
+	}
+	public boolean turnHeadBack(NXTRegulatedMotor motor){
+		boolean foo = false;
+		motor.rotate(180);
+		Delay.msDelay(300);
+		foo = checkIt();
+		motor.rotate(-180);
+		return foo;
 	}
 	public boolean turnHeadRight(NXTRegulatedMotor motor){
 		boolean foo = false;
-		motor.rotate(90);
-		Delay.msDelay(10);
+		motor.rotate(130);
+		Delay.msDelay(1000);
 		foo = checkIt();
-		motor.rotate(-90);
+		motor.rotate(-130);
 		return foo;
 	}
 	public  boolean  turnHeadLeft(NXTRegulatedMotor motor){
 		boolean foo = false;
-		motor.rotate(-90);
-		Delay.msDelay(10);
+		motor.rotate(-130);
+		Delay.msDelay(1000);
 		foo = checkIt();
-		motor.rotate(90);
+		motor.rotate(130);
 		return foo;
 	}
 	public static void turnRobotRight(DifferentialPilot dPilot) {
