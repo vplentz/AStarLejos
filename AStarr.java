@@ -2,17 +2,23 @@ import java.util.ArrayList;
 import java.util.Stack;
 
 import lejos.nxt.Motor;
+import lejos.nxt.NXTRegulatedMotor;
+import lejos.nxt.SensorPort;
+import lejos.nxt.UltrasonicSensor;
 import lejos.robotics.navigation.DifferentialPilot;
+import lejos.util.Delay;
 
 public class AStarr {
 	PriorityQueue opened = new PriorityQueue();
 	DifferentialPilot dPilot = new DifferentialPilot(1.5748f, 4.409449f, Motor.A, Motor.C);
+	NXTRegulatedMotor ultrasonicMotor = Motor.B;
+	UltrasonicSensor ultrasonicSensor = new UltrasonicSensor(SensorPort.S1);
 	MySet closed = new MySet();
 	MNode whereImI;
 	ArrayList<MNode> notTraveledList = new ArrayList<MNode>();
 	ArrayList<MNode> cells = new ArrayList<MNode>();
-	int gridHeight = 6;
-	int gridWidth = 6;
+	int gridHeight = 3;
+	int gridWidth = 3;
 	int myDirection = 1; // 0 down, 1 up, 2 left, 3 right
 	MNode start;
 	MNode end;
@@ -29,33 +35,9 @@ public class AStarr {
 	}
 
 	public void initGrid(MyPair start, MyPair end) {
-		ArrayList<MyPair> walls = new ArrayList<MyPair>();
-		walls.add(new MyPair(0, 0));
-		walls.add(new MyPair(0, 1));
-		walls.add(new MyPair(0, 3));
-		walls.add(new MyPair(1, 4));
-		walls.add(new MyPair(2, 2));
-		walls.add(new MyPair(3, 3));
-		walls.add(new MyPair(4, 1));
-		walls.add(new MyPair(4, 3));
-		walls.add(new MyPair(4, 4));
-		walls.add(new MyPair(4, 5));
-		walls.add(new MyPair(5, 1));
-		boolean flag = false;
 		for (int x = 0; x < gridWidth; x++) {
 			for (int y = 0; y < gridHeight; y++) {
-				for (MyPair wall : walls) {
-					boolean reachable = true;
-					if (wall.x == x && wall.y == y) {
-						reachable = false;
-						flag = true;
-						cells.add(new MNode(reachable, x, y));
-						break;
-					}
-				}
-				if (flag == false)
-					cells.add(new MNode(true, x, y));
-				flag = false;
+					cells.add(new MNode(true, x, y));			
 			}
 		}
 		// for(MNode cell: cells){
@@ -82,6 +64,7 @@ public class AStarr {
 			if (isFirst) {
 				isFirst = false;
 				this.whereImI = cell;
+				getWalls(whereImI);
 				System.out.println("first X " + whereImI.getX() + " Y "+ whereImI.getY());
 			}else{
 				System.out.println("current X " + whereImI.getX() + " Y "+ whereImI.getY());
@@ -92,7 +75,9 @@ public class AStarr {
 					whereImI = cell;
 				}else{
 					moveIt(whereImI, cell);
+					dPilot.travel(11.811f);
 					whereImI = cell;
+					getWalls(whereImI);
 				}
 			}
 			this.closed.add(cell);
@@ -115,10 +100,79 @@ public class AStarr {
 			}
 		}
 	}
+	public void getWalls(MNode whereImI){
+		int currentDirection = turn(myDirection, 1);//always lookup
+		//check up
+		if(checkIt()){
+			if(whereImI.getX()-1 >= 0)
+				getCell(whereImI.getX()-1, whereImI.getY()).setReachable(false);
+		}
+		//check left
+		if(this.turnHeadLeft(ultrasonicMotor)){
+			if(whereImI.getY() -1 >= 0)
+				getCell(whereImI.getX(), whereImI.getY()-1).setReachable(false);
+		}
+		//check right
+		if(this.turnHeadRight(ultrasonicMotor)){
+			if(whereImI.getY()+1 < this.gridWidth)
+				getCell(whereImI.getX(), whereImI.getY()+1).setReachable(false);
+		}
+		//check down
+		currentDirection = turn(currentDirection, 0);//always lookdown
+		if(this.checkIt()){
+			if(whereImI.getX()+1 < this.gridHeight)
+				getCell(whereImI.getX()+1, whereImI.getY()).setReachable(false);
+		}
+		//goes to initial direction
+		turn(currentDirection, myDirection);
+		
+	}
 	public boolean areAdjacent(MNode myself, MNode wanted){
 		if(this.getAdjacentCells(myself).contains(wanted))
 			return true;
 		return false;
+	}
+	public int turn(int myDirection, int wantedDirection){
+		if(wantedDirection == 0){//down
+			if(myDirection == 1) {// was up
+				turnRobotRight(dPilot);
+				turnRobotRight(dPilot);
+			}else if (myDirection == 3)// was right
+				turnRobotRight(dPilot);
+			else if (myDirection == 2)// was left
+				turnRobotLeft(dPilot);
+			myDirection = 0;
+		}else if(wantedDirection == 1){//up
+			if (myDirection == 0) {// was down
+				turnRobotRight(dPilot);
+				turnRobotRight(dPilot);
+			} else if (myDirection == 3)// was right
+				turnRobotLeft(dPilot);
+			else if (myDirection == 2)// was left
+				turnRobotRight(dPilot);
+			myDirection = 1;
+		}else if(wantedDirection == 2){//left
+			if (myDirection == 1)// was up
+				turnRobotLeft(dPilot);
+			else if (myDirection == 0)// was down
+				turnRobotRight(dPilot);
+			else if (myDirection == 3) {// was right
+				turnRobotRight(dPilot);
+				turnRobotRight(dPilot);
+			}
+			myDirection = 2;
+		}else if(wantedDirection == 3){//right
+			if (myDirection == 1)// was up
+				turnRobotRight(dPilot);
+			else if (myDirection == 0)// was down
+				turnRobotLeft(dPilot);
+			else if (myDirection == 2) {// was left
+				turnRobotRight(dPilot);
+				turnRobotRight(dPilot);
+			}
+			myDirection = 3;
+		}
+		return myDirection;
 	}
 	public void moveIt(MNode whereImI, MNode whereToGo) {
 		if (whereImI.getY() != whereToGo.getY()) {// left or right
@@ -182,9 +236,30 @@ public class AStarr {
 	
 			}
 		}
-		dPilot.travel(7.87402f);
 	}
-
+	public boolean checkIt(){
+		int distance = ultrasonicSensor.getDistance();
+		Delay.msDelay(100);
+		if(distance <= 15)
+			return true;
+		return false;
+	}
+	public boolean turnHeadRight(NXTRegulatedMotor motor){
+		boolean foo = false;
+		motor.rotate(90);
+		Delay.msDelay(10);
+		foo = checkIt();
+		motor.rotate(-90);
+		return foo;
+	}
+	public  boolean  turnHeadLeft(NXTRegulatedMotor motor){
+		boolean foo = false;
+		motor.rotate(-90);
+		Delay.msDelay(10);
+		foo = checkIt();
+		motor.rotate(90);
+		return foo;
+	}
 	public static void turnRobotRight(DifferentialPilot dPilot) {
 		// 21.676989
 		dPilot.rotate(-180);
