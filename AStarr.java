@@ -17,14 +17,18 @@ public class AStarr {
 	MNode start;
 	MNode end;
 
-	public AStarr() {
-		initGrid();
+	public AStarr(MyPair start, MyPair end, int myDirection) {
 		dPilot.setRotateSpeed(100);
 		dPilot.setTravelSpeed(10);
 		dPilot.setAcceleration(20);
+		this.myDirection = myDirection;
+		initGrid(start, end);
+		System.out.println("START X"+ this.start.getX() + " Y " +this.start.getY());
+		System.out.println("END X"+ this.end.getX() + " Y " +this.end.getY());
+		this.process();
 	}
 
-	public void initGrid() {
+	public void initGrid(MyPair start, MyPair end) {
 		ArrayList<MyPair> walls = new ArrayList<MyPair>();
 		walls.add(new MyPair(0, 0));
 		walls.add(new MyPair(0, 1));
@@ -56,10 +60,10 @@ public class AStarr {
 		}
 		// for(MNode cell: cells){
 
-		start = getCell(5, 0);
-		end = getCell(0, 5);
-		System.out.println("start x y " + start.getX() + start.getY() + start.isReachable());
-		System.out.println("end x y " + end.getX() + end.getY() + end.isReachable());
+		this.start = getCell(start.getX(), start.getY());
+		this.end = getCell(end.getX(), end.getY());
+		System.out.println("start x y " + this.start.getX() + this.start.getY() + this.start.isReachable());
+		System.out.println("end x y " + this.end.getX() + this.end.getY() + this.end.isReachable());
 
 	}
 
@@ -82,31 +86,14 @@ public class AStarr {
 			}else{
 				System.out.println("current X " + whereImI.getX() + " Y "+ whereImI.getY());
 				System.out.println("next X " + cell.getX() + " Y "+ cell.getY());
-				while(!areAdjacent(whereImI, cell)){
-					notTraveledList.add(cell);
-					if(!opened.getNodes().isEmpty())
-						cell = opened.heapPop();
-					else{
-						ArrayList<MNode> adjacents = this.getAdjacentCells(whereImI);
-						boolean found = false;
-						for(MNode adjacent : adjacents){
-							if(notTraveledList.contains(adjacent)){
-								cell = adjacent;
-								found = true;
-							}
-						}
-						if(found == false){
-							moveIt(whereImI, whereImI.getParent());
-							whereImI = whereImI.getParent();	
-						}
-					}
+				if(!areAdjacent(whereImI,cell)){
+					System.out.println("RECURSION");
+					new AStarr(new MyPair(whereImI.getX(), whereImI.getY()), new MyPair(cell.getX(), cell.getY()), myDirection);
+					whereImI = cell;
+				}else{
+					moveIt(whereImI, cell);
+					whereImI = cell;
 				}
-				System.out.println("after move X " + whereImI.getX() + " Y "+ whereImI.getY());
-				moveIt(whereImI, cell);
-				whereImI = cell;
-				for(MNode node : notTraveledList)
-					opened.heapPush(node);
-				notTraveledList.clear();
 			}
 			this.closed.add(cell);
 			if (cell.equals(this.end)) {
